@@ -271,6 +271,8 @@ function sumSkills(list,max){const o={};list.forEach(s=>Object.entries(s||{}).fo
 const itemSrc={};
 D.m.forEach(m=>m.rw.forEach(r=>{(itemSrc[r[2]]=itemSrc[r[2]]||[]).push([m.id,...r])}));
 const itemMons=id=>[...new Set((itemSrc[id]||[]).map(r=>r[0]))];
+const itemRanks=id=>['low','high'].filter(k=>(itemSrc[id]||[]).some(r=>r[1]===k));
+const rankTxt=rs=>rs.length===2?'하위·상위':rs.length?RANK[rs[0]]+' 전용':'';
 /* 소재 → 쓰이는 곳 */
 const itemUse={};
 function use(inputs,key){Object.keys(inputs||{}).forEach(i=>{(itemUse[i]=itemUse[i]||new Set()).add(key)})}
@@ -351,7 +353,7 @@ function sub(e){
   if(e.c==='sk')return SKK[e.k]||'';
   if(e.c==='j')return (e.on==='weapon'?'무기용':'방어구용')+' · 슬롯 '+e.lv;
   if(e.c==='am')return e.rand?'무작위 호석':e.rk.length+'단계';
-  if(e.c==='it')return ITK[e.k]||'';
+  if(e.c==='it'){const rt=rankTxt(itemRanks(e.id));return (ITK[e.k]||'')+(rt?' · '+rt:'')}
   return '';
 }
 function tagHtml(e){
@@ -618,7 +620,8 @@ function dAmulet(e){
   return h;
 }
 function dItem(e){
-  let h=`<div class="pills"><span class="pill">${ITK[e.k]||e.k}</span>${e.r?`<span class="pill r" style="--c:${rcol(e.r)}">레어 ${e.r}</span>`:''}</div>`;
+  const irs=itemRanks(e.id);
+  let h=`<div class="pills"><span class="pill">${ITK[e.k]||e.k}</span>${e.r?`<span class="pill r" style="--c:${rcol(e.r)}">레어 ${e.r}</span>`:''}${irs.length?`<span class="pill">${rankTxt(irs)}</span>`:''}</div>`;
   if(e.d)h+=`<div class="desc">${esc(e.d)}</div>`;
   h+=`<div class="stats">${e.mx?stat('최대 소지',e.mx):''}${e.sell?stat('판매가',num(e.sell)+' z'):''}${e.buy?stat('구매가',num(e.buy)+' z'):''}</div>`;
   if((e.rc||[]).length)h+=sec('조합',e.rc.map(r=>`<div class="mats">${r[1].map(i=>kw(items[i])).join(' <span class="none">+</span> ')} <span class="none">→</span> <span>${esc(e.ko)}<span class="q">×${r[0]}</span></span></div>`).join(''));
@@ -629,7 +632,7 @@ function dItem(e){
     const [cur,tb]=tabs('isrc',ranks.map(r=>[r,RANK[r]]));
     const agg={};src.filter(r=>r[1]===cur).forEach(r=>{const k=r[0]+'|'+r[2]+'|'+(r[6]||'');(agg[k]=agg[k]||{m:r[0],k:r[2],p:r[6],c:[],a:r[4]}).c.push(r[5])});
     const rows=Object.values(agg).sort((a,b)=>Math.max(...b.c)-Math.max(...a.c));
-    h+=sec('얻는 곳',tb+`<div class="tblwrap"><table class="tbl"><thead><tr><th>몬스터</th><th>방법</th><th>확률</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${kw(mons[x.m])}</td><td>${RWK[x.k]||x.k}${x.p?`<br><span class="none">${esc(D.pn[x.p]||x.p)}</span>`:''}</td><td>${[...new Set(x.c)].sort((a,b)=>b-a).map(c=>c+'%').join(' / ')}</td></tr>`).join('')}</tbody></table></div>`);
+    h+=sec('얻는 곳',(ranks.length===1?`<div class="cond" style="margin:0 0 8px">${RANK[ranks[0]]} 퀘스트에서만 나오는 소재예요.</div>`:'')+tb+`<div class="tblwrap"><table class="tbl"><thead><tr><th>몬스터</th><th>방법</th><th>확률</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${kw(mons[x.m])}</td><td>${RWK[x.k]||x.k}${x.p?`<br><span class="none">${esc(D.pn[x.p]||x.p)}</span>`:''}</td><td>${[...new Set(x.c)].sort((a,b)=>b-a).map(c=>c+'%').join(' / ')}</td></tr>`).join('')}</tbody></table></div>`);
   }
   /* 쓰이는 곳 */
   const us=[...(itemUse[e.id]||[])].map(k=>byKey[k]).filter(Boolean).sort(defOrder);
