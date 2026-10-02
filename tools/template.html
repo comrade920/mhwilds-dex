@@ -1,0 +1,707 @@
+<title>MH 와일즈 도감</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky search bar over a two-pane field guide — results list left, entry detail right; on phones the detail slides over as a sheet. Same skeleton as DBD 도감. */
+:root{
+  --bg:#eef0ec; --surface:#fbfcfa; --sunk:#e2e6e0; --line:#cbd1c8;
+  --fg:#1b201d; --muted:#5f6a63; --accent:#1f6f68; --accent-fg:#ffffff; --hl:#165a54;
+  --r1:#8a8a8a; --r2:#5f8f3e; --r3:#2f86a6; --r4:#5b5bc2; --r5:#a24fb8; --r6:#c2446a; --r7:#cf6f1f; --r8:#b38a12;
+  --fire:#d2402a; --water:#2a76c9; --thunder:#b39300; --ice:#2f9db3; --dragon:#7d3aab;
+  --poison:#93489f; --sleep:#3f8299; --paralysis:#a88f0c; --blastblight:#cf6a22;
+  --sh-red:#d43a2f; --sh-orange:#e8862a; --sh-yellow:#e3c52e; --sh-green:#5cb246; --sh-blue:#3f7fe0; --sh-white:#f4f4f4; --sh-purple:#a259d9;
+  --mon:#7a5a2e;
+  --f-display:"Nanum Myeongjo","AppleMyungjo",serif;
+  --f-body:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --toph:200px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#101413; --surface:#171c1b; --sunk:#212827; --line:#313a38;
+  --fg:#e4ebe8; --muted:#95a29e; --accent:#4fb3a8; --accent-fg:#04201d; --hl:#7fd3c8;
+  --r1:#a8a8a8; --r2:#86bd61; --r3:#5cb6d6; --r4:#8d8df0; --r5:#cf82e3; --r6:#ec7598; --r7:#f09a4c; --r8:#e2bc43;
+  --fire:#f0644c; --water:#5aa1ee; --thunder:#e6c636; --ice:#5fcbe0; --dragon:#b27be0;
+  --poison:#c27ad0; --sleep:#6fb5cc; --paralysis:#dcc23c; --blastblight:#f08f45;
+  --mon:#c9a36a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#101413; --surface:#171c1b; --sunk:#212827; --line:#313a38;
+  --fg:#e4ebe8; --muted:#95a29e; --accent:#4fb3a8; --accent-fg:#04201d; --hl:#7fd3c8;
+  --r1:#a8a8a8; --r2:#86bd61; --r3:#5cb6d6; --r4:#8d8df0; --r5:#cf82e3; --r6:#ec7598; --r7:#f09a4c; --r8:#e2bc43;
+  --fire:#f0644c; --water:#5aa1ee; --thunder:#e6c636; --ice:#5fcbe0; --dragon:#b27be0;
+  --poison:#c27ad0; --sleep:#6fb5cc; --paralysis:#dcc23c; --blastblight:#f08f45;
+  --mon:#c9a36a; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;margin:0}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.top-in{max-width:1180px;margin:0 auto;padding:12px 16px 10px;display:grid;gap:9px}
+.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.brand h1{font-family:var(--f-display);font-weight:800;font-size:22px;margin:0;letter-spacing:-.01em}
+.brand .ver{font-family:var(--f-mono);font-size:11px;color:var(--muted);letter-spacing:.04em}
+.searchrow{display:flex;gap:8px}
+.sbox{flex:1;min-width:0;position:relative}
+.sbox input{width:100%;height:46px;border-radius:10px;border:1px solid var(--line);background:var(--surface);padding:0 40px 0 14px;font-size:16px}
+.sbox input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
+.clear{position:absolute;right:6px;top:7px;width:32px;height:32px;border:0;background:none;color:var(--muted);cursor:pointer;font-size:18px;border-radius:8px}
+.charsel{height:46px;border-radius:10px;border:1px solid var(--line);background:var(--surface);padding:0 10px;max-width:38%;min-width:0}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chip[data-zero]{opacity:.45}
+.chip .n{font-family:var(--f-mono);font-size:11px;opacity:.65;margin-left:4px}
+.subchips .chip{font-size:12px;padding:3px 10px;border-style:dashed}
+.subchips .chip[aria-pressed="true"]{border-style:solid}
+.subchips .lbl{flex:none;font-size:11.5px;color:var(--muted);align-self:center;margin-right:2px}
+
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:14px 40px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:20px;align-items:start}
+.meta{font-size:12.5px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.list{display:flex;flex-direction:column;gap:2px}
+.row{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:center;padding:9px 10px;border-radius:10px;cursor:pointer;border:1px solid transparent;background:none;text-align:left;width:100%}
+.row:hover{background:var(--sunk)}
+.row[aria-selected="true"]{background:var(--surface);border-color:var(--line)}
+.row .nm,.row .en{display:block}
+.row .nm{font-weight:600;font-size:15px;line-height:1.3}
+.row .en{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .tag{font-size:11.5px;color:var(--muted);text-align:right;white-space:nowrap}
+.row .tag b{display:block;font-weight:500;color:var(--fg);font-size:12px}
+.more{margin-top:8px;width:100%;padding:10px;border-radius:10px;border:1px dashed var(--line);background:none;cursor:pointer;color:var(--muted)}
+.linkbtn{border:0;background:none;padding:0;color:var(--accent);cursor:pointer;font-size:inherit;text-decoration:underline;text-underline-offset:3px}
+.empty{padding:28px 10px;color:var(--muted)}
+mark{background:color-mix(in srgb,var(--accent) 22%,transparent);color:inherit;border-radius:2px}
+.quick{display:grid;gap:12px;margin-bottom:14px}
+.quick h3{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 4px;font-weight:600}
+.quick .minis{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+
+/* glyphs: monsters are circles, weapons diamonds, armor shields, skills hexagon-ish, items squares */
+.g{width:36px;height:36px;display:grid;place-items:center;position:relative;flex:none}
+.g span{position:relative;z-index:1;font-family:var(--f-display);font-weight:800;font-size:14px;color:var(--fg)}
+.g::before{content:"";position:absolute;inset:5px;border:2px solid var(--c,var(--muted));background:color-mix(in srgb,var(--c,var(--muted)) 16%,var(--surface))}
+.g.mon::before{border-radius:50%;inset:3px}
+.g.wep::before{transform:rotate(45deg);inset:6px}
+.g.arm::before{border-radius:4px 4px 50% 50%}
+.g.skl::before{border-radius:30%}
+.g.jew::before{border-radius:50%;inset:7px;border-width:3px}
+.g.amu::before{border-radius:50% 50% 4px 4px}
+.g.itm::before{border-radius:4px}
+.g.big{width:64px;height:64px}.g.big span{font-size:24px}.g.big.wep::before{inset:10px}.g.big.jew::before{inset:12px}
+
+.detail{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--toph) + 14px);background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;max-height:calc(100vh - var(--toph) - 28px);overflow:auto;min-width:0}
+.dhead{display:flex;gap:16px;align-items:center}
+.dhead h2{font-family:var(--f-display);font-size:26px;font-weight:800;margin:0;line-height:1.2;text-wrap:balance}
+.dhead .en{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.dtools{display:flex;gap:6px;margin-left:auto;align-self:flex-start;flex:none}
+.tool{border:1px solid var(--line);background:var(--surface);border-radius:8px;height:34px;min-width:34px;padding:0 10px;cursor:pointer;font-size:13px;color:var(--muted);display:inline-flex;align-items:center;gap:4px}
+.tool[aria-pressed="true"]{color:var(--r8);border-color:var(--r8)}
+.tool .s{font-size:16px;line-height:1}
+.copied{font-size:12px;color:var(--muted);margin-top:6px}
+.copybox{width:100%;margin-top:6px;font-family:var(--f-mono);font-size:12px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--sunk)}
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 4px}
+.pill{font-size:12px;border-radius:6px;padding:2px 8px;background:var(--sunk);border:0;cursor:default}
+button.pill{cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.pill.r{color:var(--bg);background:var(--c)}
+.desc{margin-top:14px;max-width:64ch;white-space:pre-line}
+.desc.small{font-size:13.5px;color:var(--muted)}
+.num{font-weight:700;color:var(--hl);font-variant-numeric:tabular-nums;white-space:nowrap}
+.sec{margin-top:22px}
+.sec h3{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 8px;font-weight:600}
+.sec h4{font-size:12.5px;margin:12px 0 4px;color:var(--fg);font-weight:600}
+.minis{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:4px}
+.mini{display:flex;gap:8px;align-items:center;padding:6px 8px;border-radius:8px;border:0;background:none;text-align:left;cursor:pointer;min-width:0}
+.mini:hover{background:var(--sunk)}
+.mini .g{width:28px;height:28px}.mini .g span{font-size:11px}
+.mini .t{font-size:13.5px;line-height:1.3;min-width:0}
+.mini .t small{display:block;font-size:11.5px;color:var(--muted)}
+.links{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap}
+.links a{font-size:13px;color:var(--accent);text-underline-offset:3px}
+.back{display:none;border:0;background:none;color:var(--muted);padding:0 0 12px;cursor:pointer;font-size:14px}
+.note{font-size:12px;color:var(--muted);background:var(--sunk);border-radius:8px;padding:8px 10px;margin-bottom:12px}
+.hint{color:var(--muted);font-size:14px}
+.hint kbd{font-family:var(--f-mono);font-size:12px;background:var(--sunk);border-radius:4px;padding:1px 5px}
+
+/* stat grid */
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px;margin-top:14px}
+.stat{background:var(--sunk);border-radius:8px;padding:7px 10px;min-width:0}
+.stat .k{font-size:11px;color:var(--muted);display:block}
+.stat .v{font-weight:600;font-variant-numeric:tabular-nums;font-size:15px}
+.el{font-weight:700;white-space:nowrap}
+.slots{display:inline-flex;gap:3px;vertical-align:middle}
+.slot{display:inline-grid;place-items:center;width:20px;height:20px;border:1.5px solid var(--muted);border-radius:50%;font-family:var(--f-mono);font-size:11px;font-weight:500;color:var(--fg)}
+.slot.w{border-radius:4px}
+.none{color:var(--muted)}
+/* sharpness */
+.sharp{display:flex;height:14px;border-radius:3px;overflow:hidden;background:var(--sunk);border:1px solid var(--line);margin-top:6px;max-width:440px}
+.sharp i{display:block;height:100%}
+.sharp i.hc{background-image:repeating-linear-gradient(135deg,transparent 0 3px,rgba(0,0,0,.28) 3px 5px);opacity:.75}
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;font-size:12px;color:var(--muted)}
+/* tables */
+.tbl{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+.tbl th,.tbl td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
+.tbl th{font-size:11.5px;color:var(--muted);font-weight:600}
+.tbl td:first-child,.tbl th:first-child{text-align:left;white-space:normal}
+.tbl td.hot{background:color-mix(in srgb,var(--accent) 22%,transparent);font-weight:700}
+.tbl td.warm{background:color-mix(in srgb,var(--accent) 9%,transparent)}
+.tbl td.zero{color:var(--muted)}
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td .kw{font-weight:500}
+.kw{border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer;text-decoration:underline dotted;text-decoration-color:var(--muted);text-underline-offset:3px;text-align:left}
+.kw:hover{color:var(--accent)}
+.weak{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px}
+.weak div{background:var(--sunk);border-radius:8px;padding:6px 8px;font-size:13px;display:flex;justify-content:space-between;gap:6px;align-items:center}
+.weak .st{letter-spacing:-1px;color:var(--hl);font-size:12px}
+.weak .x{color:var(--muted);font-size:12px}
+.cond{font-size:12px;color:var(--muted);margin-top:6px}
+.tabs{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px;background:var(--surface);margin-bottom:8px}
+.tabs button{border:0;background:none;border-radius:999px;padding:4px 14px;font-size:12.5px;font-weight:600;cursor:pointer;color:var(--muted)}
+.tabs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+.piece{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px;background:var(--bg)}
+.piece .ph{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}
+.piece .ph b{font-size:15px}
+.piece .ph small{font-size:12px;color:var(--muted)}
+.kv{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;margin-top:6px}
+.kv span{white-space:nowrap}
+.kv .k{color:var(--muted);margin-right:4px}
+.mats{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:13px;margin-top:6px}
+.mats .kw{font-size:13px}
+.mats .q{font-family:var(--f-mono);font-size:12px;color:var(--muted);margin-left:2px}
+.notes{display:inline-flex;gap:3px;vertical-align:middle}
+.notes i{width:12px;height:12px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.25)}
+.rk{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px;margin-top:6px}
+.rk .lv{font-family:var(--f-mono);font-size:12px;color:var(--muted);padding-top:2px;white-space:nowrap}
+.rk div{white-space:pre-line}
+
+.foot{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:18px 32px;border-top:1px solid var(--line);font-size:12px;line-height:1.6;color:var(--muted);display:grid;gap:4px}
+.foot p{margin:0;max-width:80ch}
+.foot a{color:inherit;text-underline-offset:3px}
+@media (max-width:820px){
+  .searchrow{flex-wrap:wrap}
+  .sbox{flex:1 1 100%}
+  .charsel{flex:1;max-width:none;height:40px}
+  .wrap{grid-template-columns:minmax(0,1fr)}
+  .detail{position:fixed;inset:0;top:0;z-index:20;border-radius:0;border:0;max-height:none;padding:calc(env(safe-area-inset-top,0px) + 14px) 18px calc(env(safe-area-inset-bottom,0px) + 30px);transform:translateX(100%);transition:transform .22s ease}
+  .detail.open{transform:none}
+  .back{display:block}
+  .brand h1{font-size:20px}
+  .dhead h2{font-size:22px}
+}
+@media (prefers-reduced-motion:reduce){.detail{transition:none}}
+</style>
+
+<header class="top" id="top">
+  <div class="top-in">
+    <div class="brand"><h1>MH 와일즈 도감</h1><span class="ver">MONSTER HUNTER WILDS · 게임 데이터 <span id="ver"></span></span></div>
+    <div class="searchrow">
+      <div class="sbox">
+        <input id="q" type="search" placeholder="몬스터·무기·스킬·소재 검색 (ㄹㅇㄹㅇㅅ, rathalos, 약점 특효…)" autocomplete="off" aria-label="검색">
+        <button class="clear" id="clr" aria-label="검색어 지우기" hidden>×</button>
+      </div>
+      <select id="who" class="charsel" aria-label="몬스터별 보기"></select>
+    </div>
+    <div class="chips" id="chips" role="toolbar" aria-label="분류"></div>
+    <div class="chips subchips" id="sub" role="toolbar" aria-label="세부 분류" hidden></div>
+    <div class="chips subchips" id="sub2" role="toolbar" aria-label="속성" hidden></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section>
+    <div class="quick" id="quick" hidden></div>
+    <div class="meta"><span id="count"></span><span id="mode"></span></div>
+    <div class="list" id="list" role="listbox" aria-label="검색 결과"></div>
+  </section>
+  <aside class="detail" id="detail" aria-live="polite"></aside>
+</main>
+<footer class="foot">
+  <p>비공식 팬 사이트이며 CAPCOM과 관련이 없습니다. Monster Hunter Wilds의 게임 텍스트 저작권은 CAPCOM에 있습니다.</p>
+  <p>© 2026 <a href="https://github.com/comrade920" target="_blank" rel="noopener">comrade920</a> · 사이트 코드, 디자인, 직접 작성한 내용은 허락 없이 복제·재배포할 수 없습니다.</p>
+  <p>데이터 출처: <a href="https://github.com/LartTyler/mhdb-wilds-data" target="_blank" rel="noopener">mhdb-wilds-data</a>(<a href="https://docs.wilds.mhdb.io" target="_blank" rel="noopener">MHDB Wilds</a>, 게임 파일에서 추출한 한국어 텍스트) · 상세 설명은 나무위키 검색 링크로 연결됩니다.</p>
+</footer>
+
+<script id="data" type="application/json">__DATA__</script>
+<script>
+const D=JSON.parse(document.getElementById('data').textContent);
+const CAT={m:'몬스터',w:'무기',a:'방어구',sk:'스킬',j:'장식주',am:'호석',it:'아이템'};
+const CORD={m:0,w:1,a:2,sk:3,j:4,am:5,it:6};
+const SHAPE={m:'mon',w:'wep',a:'arm',sk:'skl',j:'jew',am:'amu',it:'itm'};
+const WT=[['great-sword','대검','대'],['long-sword','태도','태'],['sword-shield','한손검','한'],['dual-blades','쌍검','쌍'],['hammer','해머','해'],['hunting-horn','수렵피리','피'],['lance','랜스','랜'],['gunlance','건랜스','건'],['switch-axe','슬래시액스','슬'],['charge-blade','차지액스','차'],['insect-glaive','조충곤','조'],['bow','활','활'],['light-bowgun','라이트보우건','라'],['heavy-bowgun','헤비보우건','헤']];
+const WTN=Object.fromEntries(WT.map(x=>[x[0],x[1]])),WTA=Object.fromEntries(WT.map(x=>[x[0],x[2]])),WTO=Object.fromEntries(WT.map((x,i)=>[x[0],i]));
+const ELN={fire:'불',water:'물',thunder:'번개',ice:'얼음',dragon:'용',poison:'독',sleep:'수면',paralysis:'마비',blastblight:'폭파',stun:'기절',exhaust:'기력 감소',flash:'섬광',noise:'소음'};
+const ELEMS=['fire','water','thunder','ice','dragon'],STATS=['poison','sleep','paralysis','blastblight'];
+const RWK={'target-reward':'목표 보상','carve':'박취','carve-severed':'절단 부위 박취','carve-rotten':'박취 (부패)','carve-rotten-severed':'절단 부위 박취 (부패)','carve-crystallized':'박취 (결정화)','broken-part':'부위 파괴','broken-fragment':'파괴 파편','wound-destroyed':'상처 파괴','tempered-wound-destroyed':'상처 파괴 (역전)'};
+const RANK={low:'하위',high:'상위'};
+const PIECE={head:'머리',chest:'몸통',arms:'팔',waist:'허리',legs:'다리'};
+const SKK={armor:'방어구 스킬',weapon:'무기 스킬',set:'시리즈 스킬',group:'그룹 스킬'};
+const ITK={material:'소재',consumable:'소모품',tool:'도구','bowgun-ammo':'보우건 탄','bow-coating':'활 병',point:'교환 아이템',mystery:'수수께끼 아이템'};
+const VAR={tempered:'역전의 개체','arch-tempered':'역전 왕',frenzied:'광룡화',alpha:'클론'};
+const ESS={red:'적',white:'백',orange:'등',green:'녹'};
+const SHC=['red','orange','yellow','green','blue','white','purple'],SHN=['적','주황','황','녹','청','백','보라'];
+const PHIAL_SA={power:'강격병',element:'강속성병',dragon:'멸룡병',exhaust:'감기병',poison:'강독병',paralyze:'마비병'};
+const PHIAL_CB={impact:'유탄병',element:'강속성병'};
+const SHELL={normal:'통상형',wide:'확산형',long:'방사형'};
+const COAT={power:'강격병','close-range':'접격병',pierce:'관통병',paralysis:'마비병',exhaust:'감기병',blast:'폭파병',poison:'독병',sleep:'수면병'};
+const AMMO={normal:'통상탄',pierce:'관통탄',spread:'산탄',sticky:'철갑유탄',cluster:'확산탄',slicing:'참열탄',wyvern:'용격탄',flaming:'화염탄',water:'수냉탄',thunder:'전격탄',freeze:'빙결탄',dragon:'멸룡탄',poison:'독탄',paralysis:'마비탄',sleep:'수면탄',exhaust:'감기탄',recover:'회복탄',demon:'귀인탄',armor:'경갑탄',tranq:'포획용 마취탄'};
+const SPAMMO={adhesive:['점착 특수탄','Adhesive Ammo'],wyvernblast:['와이번블라스트','Wyvernblast']};
+const NOTEC={purple:'#9b5bd6',white:'#f2f2f2',red:'#d9452b',blue:'#2f7fd1',aqua:'#3fc4cf',yellow:'#e3c52e',green:'#5cb246',orange:'#e8862a'};
+const CHO='ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
+const norm=s=>(s||'').toLowerCase().replace(/[\s'’"“”.,:!?\-·&()【】\[\]/／&＆]/g,'');
+const cho=s=>[...s].map(c=>{const k=c.charCodeAt(0)-0xAC00;return k>=0&&k<11172?CHO[Math.floor(k/588)]:c}).join('');
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const num=n=>n==null?'—':Number(n).toLocaleString();
+
+/* ---------- 인덱스 ---------- */
+const all=[],byKey={};
+function add(e){e.key=e.c+':'+e.id;all.push(e);byKey[e.key]=e;return e}
+const items={},skills={},mons={},weps={};
+D.it.forEach(x=>{items[x.id]=add({...x,c:'it'})});
+D.sk.forEach(x=>{skills[x.id]=add({...x,c:'sk'})});
+D.m.forEach(x=>{mons[x.id]=add({...x,c:'m'})});
+D.w.forEach(x=>{const e=add({...x,c:'w',id:x.t+'.'+x.id,gid:x.id});weps[e.id]=e});
+D.a.forEach(x=>add({...x,c:'a',sk:sumSkills(x.p.map(p=>p.sk))}));
+D.j.forEach(x=>add({...x,c:'j'}));
+D.am.forEach(x=>{const r0=x.rk[x.rk.length-1];add({c:'am',id:x.id,ko:x.rk[0].ko.replace(/[ⅠⅡⅢⅣⅤⅥ]+$/,'').trim()||x.rk[0].ko,en:x.rk[0].en.replace(/\s+[IVX]+$/,''),r:r0.r,rk:x.rk,rand:x.rand,d:x.rk[0].d,sk:sumSkills(x.rk.map(r=>r.sk),true)})});
+function sumSkills(list,max){const o={};list.forEach(s=>Object.entries(s||{}).forEach(([k,v])=>o[k]=max?Math.max(o[k]||0,v):(o[k]||0)+v));return o}
+
+/* 몬스터 ↔ 소재 */
+const itemSrc={};
+D.m.forEach(m=>m.rw.forEach(r=>{(itemSrc[r[2]]=itemSrc[r[2]]||[]).push([m.id,...r])}));
+const itemMons=id=>[...new Set((itemSrc[id]||[]).map(r=>r[0]))];
+/* 소재 → 쓰이는 곳 */
+const itemUse={};
+function use(inputs,key){Object.keys(inputs||{}).forEach(i=>{(itemUse[i]=itemUse[i]||new Set()).add(key)})}
+all.forEach(e=>{
+  if(e.c==='w')use(e.in,e.key);
+  if(e.c==='a')e.p.forEach(p=>use(p.in,e.key));
+  if(e.c==='am')e.rk.forEach(r=>use(r.in,e.key));
+  if(e.c==='it')(e.rc||[]).forEach(r=>r[1].forEach(i=>{(itemUse[i]=itemUse[i]||new Set()).add(e.key)}));
+});
+/* 몬스터 → 장비: 그 몬스터만 주는 소재를 쓰는 장비 */
+const monEq={};
+all.forEach(e=>{
+  const ins=e.c==='w'?[e.in]:e.c==='a'?e.p.map(p=>p.in):e.c==='am'?e.rk.map(r=>r.in):null;if(!ins)return;
+  const ms=new Set();ins.forEach(i=>Object.keys(i||{}).forEach(id=>{const s=itemMons(+id);if(s.length===1)ms.add(s[0])}));
+  e.mons=[...ms];ms.forEach(m=>(monEq[m]=monEq[m]||[]).push(e.key));
+});
+/* 무기 파생 ↔ 몬스터 (영문 'Rathian Tree' → 'Rathian') */
+const serMon={};
+/* 스킬 → 출처 */
+const skSrc={};
+all.forEach(e=>{if(['w','a','j','am'].includes(e.c))Object.entries(e.sk||{}).forEach(([k,v])=>{(skSrc[k]=skSrc[k]||[]).push([e.key,v])})});
+D.a.forEach(a=>{['sb','gb'].forEach(b=>{if(a[b]){(skSrc[a[b][0]]=skSrc[a[b][0]]||[]).push(['a:'+a.id,0])}})});
+/* 스킬 별명: 장식주 이름(예: 공격주) */
+const ALIAS={};
+D.j.forEach(j=>{const ks=Object.keys(j.sk);if(ks.length===1&&skills[ks[0]]){const k=norm(j.ko.replace(/【.*$/,''));(ALIAS['sk:'+ks[0]]=ALIAS['sk:'+ks[0]]||new Set()).add(k)}});
+/* 몬스터 별명: 무기 파생 이름(자화룡 파생 → 자화룡) */
+{const SEN=D.wse;
+ /* 파생 이름만 있으므로, 그 파생 무기가 쓰는 소재의 몬스터로 연결 */
+ const serM={};D.w.forEach(w=>{const e=weps[w.t+'.'+w.id];(e.mons||[]).forEach(m=>{const s=serM[w.se]=serM[w.se]||{};s[m]=(s[m]||0)+1})});
+ Object.entries(serM).forEach(([sid,cnt])=>{const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]);if(!top.length)return;const [m,c]=top[0];const tot=Object.values(cnt).reduce((a,b)=>a+b,0);
+   if(c/tot>=.6&&SEN[sid]){serMon[sid]=+m;const nick=SEN[sid].replace(/\s*파생$/,'');if(nick&&nick!==mons[m].ko)(ALIAS['m:'+m]=ALIAS['m:'+m]||new Set()).add(norm(nick))}});
+}
+const monSer=id=>Object.entries(serMon).filter(([s,m])=>m===id).map(([s])=>s);
+
+all.forEach(e=>{
+  e.kn=norm(e.ko);e.ch=cho(e.kn);e.enn=norm(e.en);e.al=[...(ALIAS[e.key]||[])];
+  const ex=[];
+  if(e.c==='a')e.p.forEach(p=>ex.push(norm(p.ko),norm(p.en)));
+  if(e.c==='am')e.rk.forEach(r=>ex.push(norm(r.ko)));
+  if(e.c==='m')e.v.forEach(v=>ex.push(norm(v[1])));
+  e.xs=ex;
+  e.dn=norm(e.d||'');
+  e.sn=Object.keys(e.sk||{}).map(k=>skills[k]?skills[k].kn:'').join('|');
+});
+const sortKey=e=>e.ko;
+const rcol=r=>r?`var(--r${Math.min(8,Math.max(1,r))})`:'var(--muted)';
+
+/* ---------- 상태 ---------- */
+let state={q:'',cat:'all',sub:'',sub2:'',who:'',sel:null,limit:60,loose:false,ser:''};
+const store={get(k,def){try{const v=JSON.parse(localStorage.getItem(k));return v??def}catch(e){return def}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let favs=store.get('mhw-fav',[]).filter(k=>byKey[k]);
+let recent=store.get('mhw-recent',[]).filter(k=>byKey[k]);
+const view={};/* 상세 화면 탭 상태 (보상 하위/상위 등) */
+function toggleFav(key){favs=favs.includes(key)?favs.filter(k=>k!==key):[key,...favs];store.set('mhw-fav',favs)}
+function pushRecent(key){recent=[key,...recent.filter(k=>k!==key)].slice(0,12);store.set('mhw-recent',recent)}
+{const s=store.get('mhw-state',{});if(s.cat&&(s.cat==='all'||CAT[s.cat]))state.cat=s.cat;}
+
+const who=document.getElementById('who');
+who.innerHTML='<option value="">몬스터 전체</option>'+D.m.slice().sort((a,b)=>a.ko.localeCompare(b.ko,'ko')).map(m=>`<option value="${m.id}">${esc(m.ko)}</option>`).join('');
+
+/* ---------- 표시 도우미 ---------- */
+function color(e){
+  if(e.c==='m')return 'var(--mon)';
+  if(e.r!=null)return rcol(e.r);
+  return 'var(--muted)';
+}
+function glyph(e,big){
+  const ch=e.c==='w'?WTA[e.t]:e.c==='j'?String(e.lv):[...e.ko.replace(/^[\[【(（]/,'')][0]||'';
+  return `<span class="g ${SHAPE[e.c]}${big?' big':''}" style="--c:${color(e)}"><span>${esc(ch)}</span></span>`;
+}
+function elSpan(k,v){return `<span class="el" style="color:var(--${k})">${ELN[k]||k}${v!=null?' '+v:''}</span>`}
+function slotsHtml(sl,w){return sl&&sl.length?`<span class="slots">${sl.map(s=>`<span class="slot${w?' w':''}">${s}</span>`).join('')}</span>`:'<span class="none">없음</span>'}
+function specialTxt(e){return (e.sp||[]).map(s=>elSpan(s[1],s[2])+(s[3]?' (봉인)':'')).join(' ')}
+function sub(e){
+  if(e.c==='m')return D.spc[e.sp]||'';
+  if(e.c==='w')return WTN[e.t];
+  if(e.c==='a')return e.p.length+'부위';
+  if(e.c==='sk')return SKK[e.k]||'';
+  if(e.c==='j')return (e.on==='weapon'?'무기용':'방어구용')+' · 슬롯 '+e.lv;
+  if(e.c==='am')return e.rand?'무작위 호석':e.rk.length+'단계';
+  if(e.c==='it')return ITK[e.k]||'';
+  return '';
+}
+function tagHtml(e){
+  const ew=e.c==='m'?e.wk.filter(w=>w[0]==='element'):[],mx=Math.max(0,...ew.map(w=>w[2]));
+  const top=e.c==='m'?(mx?'약점 '+ew.filter(w=>w[2]===mx).map(w=>ELN[w[1]]).join('·'):'속성 약점 없음'):e.r!=null?'레어 '+e.r:CAT[e.c];
+  return `<b>${esc(top)}</b>${esc(sub(e))}`;
+}
+function mini(e,extra){return e?`<button class="mini" data-key="${e.key}">${glyph(e)}<span class="t">${esc(e.ko)}${extra?`<small>${extra}</small>`:''}</span></button>`:''}
+function kw(e,label){return e?`<button class="kw" data-key="${e.key}">${esc(label||e.ko)}</button>`:''}
+function namu(e){return 'https://namu.wiki/Search?q='+encodeURIComponent(e.c==='m'?e.ko:e.ko+' 몬스터 헌터 와일즈')}
+function hl(t){return esc(t).replace(/(\d+(?:\.\d+)?)(\s?(?:%|초|배|회|번|개|포인트))?/g,'<span class="num">$1$2</span>')}
+function skillList(sk){
+  const es=Object.entries(sk||{}).filter(([k])=>skills[k]);
+  if(!es.length)return '<span class="none">없음</span>';
+  return es.map(([k,v])=>`${kw(skills[k])} <span class="q">Lv${v}</span>`).join('<span class="none"> · </span>');
+}
+function matsHtml(inputs){
+  const es=Object.entries(inputs||{});
+  if(!es.length)return '<span class="none">소재 없음</span>';
+  return `<div class="mats">${es.map(([i,n])=>`<span>${kw(items[i])}<span class="q">×${n}</span></span>`).join('')}</div>`;
+}
+
+/* ---------- 검색 ---------- */
+function score(e,q,isCho){
+  if(isCho){if(e.ch.startsWith(q))return 70;if(e.ch.includes(q))return 55;return 0}
+  if(e.kn===q||e.enn===q)return 100;
+  if(e.al.includes(q))return 95;
+  if(e.kn.startsWith(q)||e.enn.startsWith(q))return 85;
+  if(e.al.some(a=>a.startsWith(q)))return 80;
+  if(e.kn.includes(q)||e.enn.includes(q))return 70;
+  if(e.xs.some(x=>x.includes(q)))return 60;
+  if(q.length>=2&&e.sn&&e.sn.split('|').some(s=>s===q||s.startsWith(q)))return 35;
+  if(q.length>=2&&e.dn.includes(q))return 10;
+  return 0;
+}
+/* 검색어가 몬스터 이름과 같으면 그 몬스터 관련 항목만 (예: '레우스') */
+function monOf(q){if(!q||q.length<2)return null;return D.m.find(m=>norm(m.ko)===q||norm(m.en)===q||(ALIAS['m:'+m.id]&&ALIAS['m:'+m.id].has(q)))||null}
+function monPool(id){
+  const m=mons[id];const keys=new Set([m.key]);
+  (monEq[id]||[]).forEach(k=>keys.add(k));
+  Object.keys(itemSrc).forEach(i=>{if(itemSrc[i].some(r=>r[0]===id)&&items[i])keys.add(items[i].key)});
+  const ss=monSer(id);all.forEach(e=>{if(e.c==='w'&&ss.includes(String(e.se)))keys.add(e.key)});
+  return [...keys].map(k=>byKey[k]);
+}
+function defOrder(a,b){
+  return (CORD[a.c]-CORD[b.c])||(a.c==='w'?(WTO[a.t]-WTO[b.t])||((a.r||0)-(b.r||0)):0)||(a.c==='it'?((a.k==='material')-(b.k==='material'))*-1:0)||((a.r||0)-(b.r||0))||sortKey(a).localeCompare(sortKey(b),'ko');
+}
+function subOk(e){
+  if(state.ser)return e.c==='w'&&String(e.se)===state.ser;
+  if(state.cat==='w'){
+    if(state.sub&&e.t!==state.sub)return false;
+    if(state.sub2){if(state.sub2==='none')return !(e.sp||[]).length;return (e.sp||[]).some(s=>s[1]===state.sub2)}
+    return true}
+  if(!state.sub)return true;
+  if(state.cat==='it')return e.k===state.sub;
+  if(state.cat==='sk')return e.k===state.sub;
+  if(state.cat==='j')return state.sub==='weapon'||state.sub==='armor'?e.on===state.sub:String(e.lv)===state.sub.slice(1);
+  if(state.cat==='a')return String(e.r)===state.sub;
+  if(state.cat==='m')return e.sp===state.sub;
+  return true;
+}
+function baseResults(cat){
+  const q=norm(state.q);const isCho=q&&/^[ㄱ-ㅎ]+$/.test(q);
+  const qm=state.loose?null:monOf(q);
+  state.monHit=qm&&!state.who?qm:null;
+  let pool=state.who?monPool(+state.who):state.monHit?monPool(qm.id):all;
+  if(cat!=='all')pool=pool.filter(e=>e.c===cat);
+  if(state.ser&&cat==='all')pool=pool.filter(e=>e.c==='w'&&String(e.se)===state.ser);
+  if(!q||state.monHit)return pool.slice().sort(defOrder).map(e=>[e,0]);
+  return pool.map(e=>[e,score(e,q,isCho)]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]||defOrder(a[0],b[0]));
+}
+function results(){return baseResults(state.cat).filter(([e])=>state.cat==='all'&&!state.ser?true:subOk(e))}
+function hi(text,q){
+  if(!q)return esc(text);const n=norm(q);if(/^[ㄱ-ㅎ]+$/.test(n))return esc(text);
+  const i=text.toLowerCase().indexOf(q.trim().toLowerCase());if(i<0)return esc(text);
+  return esc(text.slice(0,i))+'<mark>'+esc(text.slice(i,i+q.trim().length))+'</mark>'+esc(text.slice(i+q.trim().length));
+}
+
+/* ---------- 목록 ---------- */
+function renderChips(){
+  const r=baseResults('all');const counts={all:r.length};Object.keys(CAT).forEach(k=>counts[k]=0);r.forEach(([e])=>counts[e.c]++);
+  const list=[['all','전체'],...Object.entries(CAT)];
+  document.getElementById('chips').innerHTML=list.map(([k,l])=>`<button class="chip" data-cat="${k}" aria-pressed="${state.cat===k&&!state.ser}"${counts[k]?'':' data-zero="1"'}>${l}<span class="n">${counts[k].toLocaleString()}</span></button>`).join('');
+}
+function subDefs(){
+  const c=state.cat;
+  if(c==='w')return ['무기 종류',WT.map(x=>[x[0],x[1]])];
+  if(c==='it')return ['종류',Object.entries(ITK)];
+  if(c==='sk')return ['종류',Object.entries(SKK)];
+  if(c==='j')return ['슬롯',[['weapon','무기용'],['armor','방어구용'],['l1','슬롯 1'],['l2','슬롯 2'],['l3','슬롯 3']]];
+  if(c==='a')return ['레어도',[...new Set(D.a.map(a=>a.r))].sort((a,b)=>a-b).map(r=>[String(r),'레어 '+r])];
+  if(c==='m')return ['종',[...new Set(D.m.map(m=>m.sp))].map(s=>[s,D.spc[s]||s])];
+  return null;
+}
+function renderSub(){
+  const box=document.getElementById('sub'),box2=document.getElementById('sub2');
+  if(state.ser){box.hidden=false;box2.hidden=true;box.innerHTML=`<span class="lbl">파생</span><button class="chip" aria-pressed="true" data-clearser="1">${esc(D.wse[state.ser]||'')} ×</button>`;return}
+  const d=subDefs();box.hidden=!d;box2.hidden=state.cat!=='w';if(!d)return;
+  const base=baseResults(state.cat).map(x=>x[0]);
+  const save=state.sub;
+  const n={};d[1].forEach(([k])=>{state.sub=k;n[k]=base.filter(e=>{const s2=state.sub2;state.sub2='';const ok=subOk(e);state.sub2=s2;return ok}).length});state.sub=save;
+  box.innerHTML=`<span class="lbl">${d[0]}</span>`+d[1].map(([k,l])=>`<button class="chip" data-sub="${k}" aria-pressed="${state.sub===k}"${n[k]?'':' data-zero="1"'}>${esc(l)}<span class="n">${n[k]}</span></button>`).join('');
+  if(state.cat==='w'){
+    const opts=[['none','무속성'],...ELEMS.map(k=>[k,ELN[k]]),...STATS.map(k=>[k,ELN[k]])];
+    const pool=base.filter(e=>!state.sub||e.t===state.sub);
+    box2.innerHTML='<span class="lbl">속성</span>'+opts.map(([k,l])=>{const c=pool.filter(e=>k==='none'?!(e.sp||[]).length:(e.sp||[]).some(s=>s[1]===k)).length;
+      return `<button class="chip" data-sub2="${k}" aria-pressed="${state.sub2===k}"${c?'':' data-zero="1"'}>${l}<span class="n">${c}</span></button>`}).join('');
+  }
+}
+function renderQuick(){
+  const box=document.getElementById('quick');
+  const show=!state.q&&!state.who&&!state.ser&&(favs.length||recent.length);
+  box.hidden=!show;if(!show)return;
+  box.innerHTML=(favs.length?`<div><h3>즐겨찾기</h3><div class="minis">${favs.map(k=>mini(byKey[k])).join('')}</div></div>`:'')+
+    (recent.length?`<div><h3>최근 본 항목</h3><div class="minis">${recent.slice(0,8).map(k=>mini(byKey[k])).join('')}</div></div>`:'');
+}
+function renderList(){
+  renderChips();renderSub();renderQuick();
+  const r=results();const list=document.getElementById('list');
+  document.getElementById('count').textContent=`${r.length.toLocaleString()}개`;
+  const isCho=/^[ㄱ-ㅎ]+$/.test(norm(state.q));
+  const mode=document.getElementById('mode');
+  if(state.monHit)mode.innerHTML=`${esc(state.monHit.ko)} 관련 항목만 표시 · <button class="linkbtn" id="loose">이름에 ‘${esc(state.q.trim())}’ 들어간 항목 모두 보기</button>`;
+  else mode.textContent=state.q?(isCho?'초성 검색':''):state.who?mons[state.who].ko+'의 소재와 장비':'분류순';
+  if(!r.length){list.innerHTML=`<div class="empty">‘${esc(state.q)}’와 맞는 항목이 없습니다. ${state.who?`지금 ‘${esc(mons[state.who].ko)}’ 필터가 켜져 있어요. 위 선택 상자에서 ‘몬스터 전체’로 바꿔 보세요.`:'초성(예: ㄹㅇㄹㅇㅅ)이나 영문명으로도 찾아보세요.'}</div>`;return}
+  const shown=r.slice(0,state.limit);
+  list.innerHTML=shown.map(([e,s])=>`<button class="row" role="option" data-key="${e.key}" aria-selected="${state.sel===e.key}">${glyph(e)}<span style="min-width:0"><span class="nm">${hi(e.ko,state.q)}</span><span class="en">${hi(e.en||'',state.q)}${s===10?' · 설명에서 찾음':s===35?' · 스킬로 찾음':s===60?' · 부위 이름에서 찾음':''}</span></span><span class="tag">${tagHtml(e)}</span></button>`).join('')+
+    (r.length>state.limit?`<button class="more" id="more">${(r.length-state.limit).toLocaleString()}개 더 보기</button>`:'');
+}
+
+/* ---------- 상세 ---------- */
+function head(e){
+  const fav=favs.includes(e.key);
+  const canCopy=window.self===window.top&&/^https?:$/.test(location.protocol);
+  return `<button class="back" id="back">← 목록으로</button><div class="dhead">${glyph(e,true)}<div style="min-width:0"><h2>${esc(e.ko)}</h2><div class="en">${esc(e.en||'')}</div></div>
+    <div class="dtools"><button class="tool" id="fav" aria-pressed="${fav}" title="즐겨찾기"><span class="s">${fav?'★':'☆'}</span></button>${canCopy?'<button class="tool" id="copy" title="이 항목 링크 복사">링크</button>':''}</div></div><div id="copymsg"></div>`;
+}
+function stat(k,v){return `<div class="stat"><span class="k">${k}</span><span class="v">${v}</span></div>`}
+function sec(title,body){return body?`<div class="sec"><h3>${title}</h3>${body}</div>`:''}
+function minis(keys,extra){return keys.length?`<div class="minis">${keys.map(k=>mini(typeof k==='string'?byKey[k]:k,extra&&extra(k))).join('')}</div>`:''}
+function tabs(id,opts){const cur=view[id]&&opts.some(o=>o[0]===view[id])?view[id]:opts[0][0];view[id]=cur;
+  return [cur,opts.length>1?`<div class="tabs">${opts.map(([k,l])=>`<button data-tab="${id}" data-val="${k}" aria-pressed="${cur===k}">${l}</button>`).join('')}</div>`:'']}
+
+function dMonster(e){
+  let h=`<div class="pills"><span class="pill">${esc(D.spc[e.sp]||e.sp)}</span>${e.v.map(v=>`<span class="pill">${esc(v[0]==='alpha'?v[1]:VAR[v[0]]||v[1])}</span>`).join('')}${monSer(e.id).map(s=>`<button class="pill" data-ser="${s}">${esc(D.wse[s])} 무기</button>`).join('')}</div>`;
+  if(e.d)h+=`<div class="desc">${esc(e.d)}</div>`;
+  /* 약점 */
+  const wk=e.wk,rs=e.rs;
+  const elRow=ELEMS.map(k=>{const w=wk.find(x=>x[0]==='element'&&x[1]===k),r=rs.find(x=>x[0]==='element'&&x[1]===k);
+    return `<div>${elSpan(k)}${w?`<span class="st">${'★'.repeat(w[2])}</span>`:r?'<span class="x">무효</span>':'<span class="x">—</span>'}</div>`}).join('');
+  const stRow=STATS.map(k=>{const w=wk.find(x=>x[0]==='status'&&x[1]===k),r=rs.find(x=>x[0]==='status'&&x[1]===k);
+    return `<div>${elSpan(k)}${w?`<span class="st">${'★'.repeat(w[2])}</span>`:r?'<span class="x">무효</span>':'<span class="x">—</span>'}</div>`}).join('');
+  const efK=['stun','exhaust','flash','noise'];
+  const efRow=efK.map(k=>{const w=wk.find(x=>x[0]==='effect'&&x[1]===k),r=rs.find(x=>x[0]==='effect'&&x[1]===k);
+    return `<div><span>${ELN[k]}</span>${w?`<span class="st">${'★'.repeat(w[2])}</span>`:r?'<span class="x">무효</span>':'<span class="x">—</span>'}</div>`}).join('');
+  const conds=[...wk,...rs].filter(x=>x[x.length-1]&&typeof x[x.length-1]==='string').map(x=>`${ELN[x[1]]||x[1]}: ${esc(x[x.length-1])}`);
+  h+=sec('약점 (★ 많을수록 잘 듣습니다)',`<div class="weak">${elRow}</div><div class="weak" style="margin-top:6px">${stRow}</div><div class="weak" style="margin-top:6px">${efRow}</div>${conds.length?`<div class="cond">${conds.join('<br>')}</div>`:''}`);
+  /* 육질 */
+  if(e.pt.length){
+    const cols=['절단','타격','탄',...ELEMS.map(k=>ELN[k]),'기절'];
+    const rows=e.pt.map(p=>{const v=p[3].map(x=>Math.round(x*100));
+      return `<tr><td>${esc(D.pn[p[0]]||p[0])}${p[2]?` <span class="none" title="조충 엑기스">· ${ESS[p[2]]||''}</span>`:''}</td>${v.map((x,i)=>{const phys=i<3,el=i>=3&&i<8;const cls=x===0?'zero':phys?(x>=45?'hot':x>=35?'warm':''):el?(x>=20?'hot':x>=15?'warm':''):'';return `<td class="${cls}">${x}</td>`}).join('')}</tr>`}).join('');
+    h+=sec('부위별 육질',`<div class="tblwrap"><table class="tbl"><thead><tr><th>부위</th>${cols.map((c,i)=>`<th${i>=3&&i<8?` style="color:var(--${ELEMS[i-3]})"`:''}>${c}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div><div class="cond">숫자가 클수록 잘 들어갑니다. 물리 45 이상·속성 20 이상은 진하게 표시했어요. 부위 옆 글자는 조충 엑기스 색입니다.</div>`);
+  }
+  /* 보상 */
+  const ranks=[...new Set(e.rw.map(r=>r[0]))].sort((a,b)=>a==='high'?-1:1);
+  if(ranks.length){
+    const [cur,tb]=tabs('rw',ranks.map(r=>[r,RANK[r]]));
+    const rs2=e.rw.filter(r=>r[0]===cur);
+    const kinds=[...new Set(rs2.map(r=>r[1]))];
+    const body=kinds.map(k=>{
+      const agg={};rs2.filter(r=>r[1]===k).forEach(r=>{const key=r[2]+'|'+(r[5]||'');(agg[key]=agg[key]||{i:r[2],p:r[5],c:[],a:r[3]}).c.push(r[4]);agg[key].a=Math.max(agg[key].a,r[3])});
+      return `<h4>${RWK[k]||k}</h4><div class="tblwrap"><table class="tbl"><tbody>${Object.values(agg).sort((a,b)=>Math.max(...b.c)-Math.max(...a.c)).map(x=>`<tr><td>${kw(items[x.i])}${x.p?` <span class="none">· ${esc(D.pn[x.p]||x.p)}</span>`:''}</td><td>×${x.a}</td><td>${[...new Set(x.c)].sort((a,b)=>b-a).map(c=>c+'%').join(' / ')}</td></tr>`).join('')}</tbody></table></div>`}).join('');
+    h+=sec('보상',tb+body+`<div class="cond">확률이 여럿이면 개체(통상·역전 등)마다 다른 값입니다.</div>`);
+  }
+  /* 기본 정보 */
+  const locs=e.loc.map(l=>D.st[l]).filter(Boolean);
+  h+=sec('기본 정보',`<div class="stats">${stat('기본 체력',num(e.hp))}${e.sz?stat('금관 크기',`${num(e.sz[3])} 이상`)+stat('은관 크기',`${num(e.sz[2])} 이상`)+stat('미니 크기',`${num(e.sz[0])} 이하`):''}</div>${locs.length?`<div class="kv" style="margin-top:10px"><span><span class="k">출현 지역</span>${locs.map(esc).join(', ')}</span></div>`:''}`);
+  if(e.f)h+=sec('생태',`<div class="desc" style="margin-top:0">${esc(e.f)}</div>`);
+  if(e.t)h+=sec('공략 팁',`<div class="desc" style="margin-top:0">${esc(e.t)}</div>`);
+  /* 장비 */
+  const eq=(monEq[e.id]||[]).map(k=>byKey[k]);
+  const wq=eq.filter(x=>x.c==='w').sort(defOrder),aq=eq.filter(x=>x.c==='a').sort(defOrder),mq=eq.filter(x=>x.c==='am');
+  if(eq.length)h+=sec(`이 몬스터 소재로 만드는 장비 ${eq.length}개`,(aq.length?`<h4>방어구 ${aq.length}</h4>${minis(aq,k=>'레어 '+k.r)}`:'')+(wq.length?`<h4>무기 ${wq.length}</h4>${minis(wq,k=>WTN[k.t])}`:'')+(mq.length?`<h4>호석 ${mq.length}</h4>${minis(mq)}`:'')+`<div class="cond">이 몬스터에게서만 나오는 소재를 쓰는 장비만 모았어요.</div>`);
+  return h;
+}
+function sharpHtml(e){
+  if(!e.sh)return '';
+  const total=400;let last=-1;e.sh.forEach((v,i)=>{if(v>0)last=i});
+  let segs=e.sh.map((v,i)=>v?`<i style="width:${v/total*100}%;background:var(--sh-${SHC[i]})" title="${SHN[i]} ${v}"></i>`:'').join('');
+  (e.hc||[]).forEach((v,i)=>{const ci=Math.min(6,last+i);if(v)segs+=`<i class="hc" style="width:${v/total*100}%;background-color:var(--sh-${SHC[ci]})" title="장인 +${v} (${SHN[ci]})"></i>`});
+  const hcT=(e.hc||[]).reduce((a,b)=>a+b,0);
+  return `<div class="sharp" role="img" aria-label="예리도">${segs}</div><div class="legend"><span>최고 예리도 ${SHN[last]}</span>${hcT?`<span>빗금: 스킬 ‘장인’으로 늘어나는 양 +${hcT}</span>`:''}</div>`;
+}
+function dWeapon(e){
+  let h=`<div class="pills"><span class="pill">${WTN[e.t]}</span><span class="pill r" style="--c:${rcol(e.r)}">레어 ${e.r}</span>${D.wse[e.se]?`<button class="pill" data-ser="${e.se}">${esc(D.wse[e.se])}</button>`:''}${(e.mons||[]).map(m=>`<button class="pill" data-key="m:${m}">${esc(mons[m].ko)}</button>`).join('')}</div>`;
+  h+=`<div class="stats">${stat('공격력',e.atk)}${stat('회심률',(e.aff>0?'+':'')+e.aff+'%')}${stat('속성·상태',specialTxt(e)||'<span class="none">없음</span>')}${e.df?stat('방어력 보너스','+'+e.df):''}${stat('슬롯',slotsHtml(e.sl,1))}</div>`;
+  if(e.sh)h+=sec('예리도',sharpHtml(e));
+  const x=e.ex;let ex='';
+  if(x.phial)ex+=`<span><span class="k">병</span>${e.t==='switch-axe'?(PHIAL_SA[x.phial.kind]||x.phial.kind)+(x.phial.raw?' '+x.phial.raw:''):PHIAL_CB[x.phial]||x.phial}</span>`;
+  if(x.shell)ex+=`<span><span class="k">포격</span>${SHELL[x.shell]||x.shell} Lv${x.shell_level}</span>`;
+  if(x.kinsect_level)ex+=`<span><span class="k">조충 레벨</span>${x.kinsect_level}</span>`;
+  if(x.coatings)ex+=`<span><span class="k">사용 가능한 병</span>${x.coatings.map(c=>COAT[c]||c).join(', ')}</span>`;
+  if(x.special_ammo)ex+=`<span><span class="k">특수탄</span>${SPAMMO[x.special_ammo]?SPAMMO[x.special_ammo][0]+' ('+SPAMMO[x.special_ammo][1]+')':x.special_ammo}</span>`;
+  if(x.echo_wave_id&&D.hh.wave[x.echo_wave_id])ex+=`<span><span class="k">향주파</span>${esc(D.hh.wave[x.echo_wave_id])}</span>`;
+  if(x.echo_bubble_id&&D.hh.bub[x.echo_bubble_id])ex+=`<span><span class="k">향음 거품</span>${esc(D.hh.bub[x.echo_bubble_id])}</span>`;
+  if(ex)h+=sec('무기 특성',`<div class="kv">${ex}</div>`);
+  if(x.melody_id!=null&&D.hh.mel[x.melody_id]){const [notes,songs]=D.hh.mel[x.melody_id];
+    h+=sec('선율',`<div class="kv"><span><span class="k">음색</span><span class="notes">${notes.map(n=>`<i style="background:${NOTEC[n]||'#888'}"></i>`).join('')}</span></span></div><div class="mats">${[...new Set(songs.map(s=>D.hh.songs[s]).filter(Boolean))].map(s=>`<span>${esc(s)}</span>`).join('<span class="none">·</span>')}</div>`)}
+  if(x.ammo&&x.ammo.length)h+=sec('탄 장전 수',`<div class="tblwrap"><table class="tbl"><thead><tr><th>탄</th><th>Lv</th><th>장전</th><th>속사</th></tr></thead><tbody>${x.ammo.map(a=>`<tr><td>${AMMO[a[0]]||a[0]}</td><td>${a[1]}</td><td>${a[2]}</td><td>${a[3]?'●':''}</td></tr>`).join('')}</tbody></table></div>`);
+  h+=sec('무기 스킬',`<div class="mats">${skillList(e.sk)}</div>`);
+  if(e.d)h+=`<div class="desc small">${esc(e.d)}</div>`;
+  /* 생산·강화 */
+  const prev=e.pv!=null?weps[e.t+'.'+e.pv]:null;
+  const next=(e.br||[]).map(b=>weps[e.t+'.'+b]).filter(Boolean);
+  h+=sec(prev?'강화 소재':'생산 소재',`${matsHtml(e.in)}<div class="kv"><span><span class="k">비용</span>${num(e.z)} z</span></div>`);
+  if(prev||next.length)h+=sec('파생',(prev?`<h4>이전 단계</h4>${minis([prev],k=>'레어 '+k.r)}`:'')+(next.length?`<h4>다음 단계</h4>${minis(next,k=>'레어 '+k.r)}`:''));
+  return h;
+}
+function dArmor(e){
+  let h=`<div class="pills"><span class="pill r" style="--c:${rcol(e.r)}">레어 ${e.r}</span>${(e.mons||[]).map(m=>`<button class="pill" data-key="m:${m}">${esc(mons[m].ko)}</button>`).join('')}</div>`;
+  const dfB=e.p.reduce((a,p)=>a+p.df[0],0),dfM=e.p.reduce((a,p)=>a+p.df[1],0);
+  const rs=[0,1,2,3,4].map(i=>e.p.reduce((a,p)=>a+p.rs[i],0));
+  h+=`<div class="stats">${stat('방어력 합계',`${dfB} → ${dfM}`)}${ELEMS.map((k,i)=>stat(ELN[k]+' 내성',`<span style="color:var(--${k})">${rs[i]>0?'+':''}${rs[i]}</span>`)).join('')}</div>`;
+  const bon=[['sb','시리즈 스킬'],['gb','그룹 스킬']].map(([b,l])=>{const x=e[b];if(!x||!skills[x[0]])return '';const s=skills[x[0]];
+    return `<h4>${l} · ${kw(s)}</h4><div class="rk">${x[1].map(([pc,lv])=>{const rk=s.rk.find(r=>r[0]===lv);return `<span class="lv">${pc}부위</span><div>${rk?(rk[1]?'<b>'+esc(rk[1])+'</b> ':'')+hl(rk[2]):'Lv'+lv}</div>`}).join('')}</div>`}).join('');
+  if(bon)h+=sec('세트 효과',bon);
+  h+=sec('스킬 합계 (5부위)',`<div class="mats">${skillList(e.sk)}</div>`);
+  h+=sec('부위',e.p.map(p=>`<div class="piece"><div class="ph"><b>${esc(p.ko)}</b><small>${PIECE[p.k]||p.k} · 방어력 ${p.df[0]}→${p.df[1]}</small></div>
+    <div class="kv"><span><span class="k">슬롯</span>${slotsHtml(p.sl)}</span><span><span class="k">내성</span>${ELEMS.map((k,i)=>`<span style="color:var(--${k})">${ELN[k]}${p.rs[i]>0?'+':''}${p.rs[i]}</span>`).join(' ')}</span></div>
+    <div class="kv"><span><span class="k">스킬</span></span></div><div class="mats">${skillList(p.sk)}</div>
+    <div class="kv"><span><span class="k">소재</span>${num(p.pr)} z</span></div>${matsHtml(p.in)}</div>`).join(''));
+  if(e.p[0]&&e.p[0].d)h+=`<div class="desc small">${esc(e.p[0].d)}</div>`;
+  return h;
+}
+function dSkill(e){
+  let h=`<div class="pills"><span class="pill">${SKK[e.k]||e.k}</span>${e.rk.length?`<span class="pill">최대 Lv${Math.max(...e.rk.map(r=>r[0]))}</span>`:''}</div>`;
+  if(e.d)h+=`<div class="desc">${esc(e.d)}</div>`;
+  if(e.rk.length)h+=sec('레벨별 효과',`<div class="rk">${e.rk.map(r=>`<span class="lv">${r[3]?r[3]+'부위':'Lv'+r[0]}</span><div>${r[1]?'<b>'+esc(r[1])+'</b><br>':''}${hl(r[2])}</div>`).join('')}</div>`);
+  const src=skSrc[e.id]||[];
+  const g={j:[],a:[],am:[],w:[]};src.forEach(([k,v])=>{const x=byKey[k];if(x)g[x.c].push([x,v])});
+  Object.values(g).forEach(a=>a.sort((p,q)=>q[1]-p[1]||defOrder(p[0],q[0])));
+  const lim=view['sk-w-'+e.id]?9999:24;
+  let body='';
+  if(g.j.length)body+=`<h4>장식주 ${g.j.length}</h4>${minis(g.j.map(x=>x[0]),k=>`Lv${(k.sk||{})[e.id]} · 슬롯 ${k.lv}`)}`;
+  if(g.a.length)body+=`<h4>방어구 ${g.a.length}</h4>${minis(g.a.map(x=>x[0]),k=>(k.sk||{})[e.id]?`합계 Lv${k.sk[e.id]}`:'세트 효과')}`;
+  if(g.am.length)body+=`<h4>호석 ${g.am.length}</h4>${minis(g.am.map(x=>x[0]),k=>`최대 Lv${k.sk[e.id]}`)}`;
+  if(g.w.length)body+=`<h4>무기 ${g.w.length}</h4>${minis(g.w.slice(0,lim).map(x=>x[0]),k=>`${WTN[k.t]} · Lv${k.sk[e.id]}`)}${g.w.length>lim?`<button class="more" data-more="sk-w-${e.id}">무기 ${g.w.length-lim}개 더 보기</button>`:''}`;
+  h+=sec('얻는 방법',body||'<span class="none">고정 출처가 없습니다.</span>');
+  return h;
+}
+function dJewel(e){
+  let h=`<div class="pills"><span class="pill">${e.on==='weapon'?'무기용':'방어구용'}</span><span class="pill">슬롯 ${e.lv}</span><span class="pill r" style="--c:${rcol(e.r)}">레어 ${e.r}</span></div>`;
+  h+=`<div class="stats">${stat('필요 슬롯',slotsHtml([e.lv],e.on==='weapon'))}${stat('판매가',num(e.pr)+' z')}</div>`;
+  h+=sec('스킬',`<div class="mats">${skillList(e.sk)}</div>`+Object.entries(e.sk).map(([k,v])=>{const s=skills[k];const r=s&&s.rk.find(x=>x[0]===v);return r?`<div class="cond">${esc(s.ko)} Lv${v}: ${hl(r[2])}</div>`:''}).join(''));
+  if(e.d)h+=`<div class="desc small">${esc(e.d)}</div>`;
+  return h;
+}
+function dAmulet(e){
+  let h=`<div class="pills">${e.rand?'<span class="pill">무작위 스킬</span>':`<span class="pill">${e.rk.length}단계</span>`}<span class="pill r" style="--c:${rcol(e.r)}">최고 레어 ${e.r}</span></div>`;
+  if(e.d)h+=`<div class="desc">${esc(e.d)}</div>`;
+  if(e.rand)h+=`<div class="cond">스킬과 슬롯이 무작위로 붙는 호석이에요. 게임 데이터에 고정 스킬이 없습니다.</div>`;
+  h+=sec('단계',e.rk.map(r=>`<div class="piece"><div class="ph"><b>${esc(r.ko)}</b><small>레어 ${r.r??'—'}${r.pr?' · '+num(r.pr)+' z':''}</small></div>${Object.keys(r.sk).length?`<div class="mats">${skillList(r.sk)}</div>`:''}${Object.keys(r.in||{}).length?matsHtml(r.in):''}</div>`).join(''));
+  return h;
+}
+function dItem(e){
+  let h=`<div class="pills"><span class="pill">${ITK[e.k]||e.k}</span>${e.r?`<span class="pill r" style="--c:${rcol(e.r)}">레어 ${e.r}</span>`:''}</div>`;
+  if(e.d)h+=`<div class="desc">${esc(e.d)}</div>`;
+  h+=`<div class="stats">${e.mx?stat('최대 소지',e.mx):''}${e.sell?stat('판매가',num(e.sell)+' z'):''}${e.buy?stat('구매가',num(e.buy)+' z'):''}</div>`;
+  if((e.rc||[]).length)h+=sec('조합',e.rc.map(r=>`<div class="mats">${r[1].map(i=>kw(items[i])).join(' <span class="none">+</span> ')} <span class="none">→</span> <span>${esc(e.ko)}<span class="q">×${r[0]}</span></span></div>`).join(''));
+  /* 얻는 곳 */
+  const src=itemSrc[e.id]||[];
+  if(src.length){
+    const ranks=[...new Set(src.map(r=>r[1]))].sort((a,b)=>a==='high'?-1:1);
+    const [cur,tb]=tabs('isrc',ranks.map(r=>[r,RANK[r]]));
+    const agg={};src.filter(r=>r[1]===cur).forEach(r=>{const k=r[0]+'|'+r[2]+'|'+(r[6]||'');(agg[k]=agg[k]||{m:r[0],k:r[2],p:r[6],c:[],a:r[4]}).c.push(r[5])});
+    const rows=Object.values(agg).sort((a,b)=>Math.max(...b.c)-Math.max(...a.c));
+    h+=sec('얻는 곳',tb+`<div class="tblwrap"><table class="tbl"><thead><tr><th>몬스터</th><th>방법</th><th>확률</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${kw(mons[x.m])}</td><td>${RWK[x.k]||x.k}${x.p?`<br><span class="none">${esc(D.pn[x.p]||x.p)}</span>`:''}</td><td>${[...new Set(x.c)].sort((a,b)=>b-a).map(c=>c+'%').join(' / ')}</td></tr>`).join('')}</tbody></table></div>`);
+  }
+  /* 쓰이는 곳 */
+  const us=[...(itemUse[e.id]||[])].map(k=>byKey[k]).filter(Boolean).sort(defOrder);
+  if(us.length){
+    const lim=view['use-'+e.id]?9999:30;
+    const g=c=>us.filter(x=>x.c===c);
+    const qty=k=>{const x=k;let n=0;if(x.c==='w')n=x.in[e.id]||0;else if(x.c==='a')n=x.p.reduce((a,p)=>a+(p.in[e.id]||0),0);else if(x.c==='am')n=x.rk.reduce((a,r)=>a+((r.in||{})[e.id]||0),0);return n?'×'+n:''};
+    let body='';
+    [['a','방어구'],['w','무기'],['am','호석'],['it','조합 재료']].forEach(([c,l])=>{const xs=g(c);if(!xs.length)return;
+      body+=`<h4>${l} ${xs.length}</h4>${minis(xs.slice(0,lim),k=>[k.c==='w'?WTN[k.t]:k.c==='it'?'':'레어 '+k.r,qty(k)].filter(Boolean).join(' · '))}`;
+      if(xs.length>lim)body+=`<button class="more" data-more="use-${e.id}">${xs.length-lim}개 더 보기</button>`});
+    h+=sec(`쓰이는 곳 ${us.length}`,body);
+  }
+  return h;
+}
+function renderHome(box){
+  const pick=ens=>ens.map(n=>all.find(x=>x.c==='sk'&&x.enn===norm(n))).filter(Boolean);
+  box.innerHTML=`<div class="note">게임 데이터 ${esc(D.ver)} 추출본 기준 · 몬스터 ${D.m.length}종, 무기 ${D.w.length.toLocaleString()}개, 방어구 ${D.a.length}세트, 스킬 ${D.sk.length}개, 장식주 ${D.j.length}개, 아이템 ${D.it.length}개. 이후 업데이트 내용은 빠져 있을 수 있어요.</div>
+  <p class="hint">게임에서 본 이름을 그대로 쳐 보세요. 초성 <kbd>ㄹㅇㄹㅇㅅ</kbd>, 영문 <kbd>rathalos</kbd>, 별명 <kbd>자화룡</kbd>, 스킬 <kbd>약점 특효</kbd> 모두 됩니다. 몬스터 이름을 그대로 치면 그 몬스터의 소재와 장비만 모아 보여줘요.</p>
+  <div class="sec"><h3>몬스터 ${D.m.length}</h3>${minis(D.m.slice().sort((a,b)=>a.ko.localeCompare(b.ko,'ko')).map(m=>mons[m.id]),k=>D.spc[k.sp]||'')}</div>
+  <div class="sec"><h3>자주 찾는 스킬</h3>${minis(pick(['Attack Boost','Critical Eye','Weakness Exploit','Critical Boost','Agitator','Maximum Might','Burst','Evade Window','Constitution','Focus','Earplugs','Divine Blessing']))}</div>`;
+}
+function renderDetail(){
+  const box=document.getElementById('detail');
+  const e=byKey[state.sel];
+  if(!e)return renderHome(box);
+  let h=head(e);
+  h+=({m:dMonster,w:dWeapon,a:dArmor,sk:dSkill,j:dJewel,am:dAmulet,it:dItem})[e.c](e);
+  h+=`<div class="links"><a href="${namu(e)}" target="_blank" rel="noopener">나무위키에서 ‘${esc(e.ko)}’ 검색 ↗</a></div>`;
+  box.innerHTML=h;
+}
+function render(){renderList();renderDetail()}
+
+/* ---------- 이동·이벤트 ---------- */
+const toHash=k=>k.replace(':','~');
+const fromHash=h=>{const s=decodeURIComponent(h.replace(/^#/,''));const i=s.indexOf('~');return i>0?s.slice(0,i)+':'+s.slice(i+1):''};
+let pushed=0;
+function select(key,opts={}){
+  if(!byKey[key])return;
+  state.sel=key;pushRecent(key);renderList();renderDetail();
+  const d=document.getElementById('detail');d.scrollTop=0;
+  if(matchMedia('(max-width:820px)').matches)d.classList.add('open');
+  if(opts.push!==false&&location.hash!=='#'+toHash(key)){try{history.pushState({k:key},'','#'+toHash(key));pushed++}catch(e){}}
+}
+function closeSheet(){document.getElementById('detail').classList.remove('open')}
+window.addEventListener('popstate',()=>{const k=fromHash(location.hash);if(byKey[k])select(k,{push:false});else closeSheet();if(pushed>0)pushed--});
+const q=document.getElementById('q'),clr=document.getElementById('clr');
+q.addEventListener('input',()=>{state.q=q.value;state.loose=false;state.limit=60;clr.hidden=!q.value;renderList()});
+q.addEventListener('keydown',ev=>{if(ev.key==='Enter'){const f=document.querySelector('.row');if(f){select(f.dataset.key);q.blur()}}});
+clr.onclick=()=>{q.value='';state.q='';clr.hidden=true;renderList();q.focus()};
+who.onchange=()=>{state.who=who.value;state.limit=60;state.ser='';if(state.who){state.sel='m:'+state.who;renderDetail()}renderList()};
+document.addEventListener('click',ev=>{
+  const c=ev.target.closest('[data-cat]');if(c){state.cat=c.dataset.cat;state.sub='';state.sub2='';state.ser='';state.limit=60;store.set('mhw-state',{cat:state.cat});renderList();return}
+  const s=ev.target.closest('[data-sub]');if(s){state.sub=state.sub===s.dataset.sub?'':s.dataset.sub;state.limit=60;renderList();return}
+  const s2=ev.target.closest('[data-sub2]');if(s2){state.sub2=state.sub2===s2.dataset.sub2?'':s2.dataset.sub2;state.limit=60;renderList();return}
+  const sr=ev.target.closest('[data-ser]');if(sr){state.ser=sr.dataset.ser;state.cat='w';state.sub='';state.sub2='';state.who='';who.value='';state.q='';q.value='';clr.hidden=true;state.limit=200;closeSheet();renderList();document.getElementById('list').scrollIntoView({block:'nearest'});return}
+  if(ev.target.closest('[data-clearser]')){state.ser='';state.limit=60;renderList();return}
+  const tb=ev.target.closest('[data-tab]');if(tb){view[tb.dataset.tab]=tb.dataset.val;const d=document.getElementById('detail'),y=d.scrollTop;renderDetail();d.scrollTop=y;return}
+  const mo=ev.target.closest('[data-more]');if(mo){view[mo.dataset.more]=1;const d=document.getElementById('detail'),y=d.scrollTop;renderDetail();d.scrollTop=y;return}
+  const k=ev.target.closest('[data-key]');if(k){select(k.dataset.key);return}
+  if(ev.target.id==='loose'){state.loose=true;state.limit=60;renderList();return}
+  if(ev.target.id==='more'){state.limit+=100;renderList();return}
+  if(ev.target.closest('#back')){if(pushed>0)history.back();else closeSheet();return}
+  if(ev.target.closest('#fav')){toggleFav(state.sel);renderDetail();renderQuick();return}
+  if(ev.target.closest('#copy')){const url=location.href.split('#')[0]+'#'+toHash(state.sel);const m=document.getElementById('copymsg');
+    const fallback=()=>{m.innerHTML=`<input class="copybox" id="copyurl" readonly value="${esc(url)}">`;const i=document.getElementById('copyurl');i.focus();i.select()};
+    try{navigator.clipboard.writeText(url).then(()=>{m.innerHTML='<div class="copied">링크를 복사했어요.</div>'},fallback)}catch(e){fallback()}return}
+});
+document.addEventListener('keydown',ev=>{if(ev.key==='/'&&document.activeElement!==q){ev.preventDefault();q.focus()}});
+/* 헤더 높이에 맞춰 상세 패널 위치 조정 */
+{const top=document.getElementById('top');const set=()=>document.documentElement.style.setProperty('--toph',top.offsetHeight+'px');set();try{new ResizeObserver(set).observe(top)}catch(e){}}
+document.getElementById('ver').textContent=D.ver;
+render();
+{const k=fromHash(location.hash);if(byKey[k])select(k,{push:false})}
+</script>
